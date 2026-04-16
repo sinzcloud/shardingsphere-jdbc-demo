@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: shardingsphere-jdbc-demo
+
+  datasource:
+    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
+    # 指向类路径下的 sharding.yaml（也可 absolute path / file: / http: 等，见官方说明）
+    url: jdbc:shardingsphere:classpath:sharding.yaml
+  # JPA 配置
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+
+# 日志配置
+logging:
+  level:
+    com.austin: DEBUG
+    org.apache.shardingsphere: DEBUG
