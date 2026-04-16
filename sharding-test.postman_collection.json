@@ -1,0 +1,464 @@
+{
+  "info": {
+    "name": "ShardingSphere 分库分表 + 读写分离测试",
+    "description": "测试双分片（ds0/ds1）主从集群，订单表 t_order_0 / t_order_1 分表，user 表不分表。写操作路由到主库，读操作路由到从库。",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. 订单写入（主库）",
+      "item": [
+        {
+          "name": "创建订单 - 用户1 (orderId=1001, 分片到 ds1? 根据算法)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": 1001,\n  \"userId\": 1,\n  \"orderNo\": \"ORD20240001\",\n  \"amount\": 99.99,\n  \"status\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            }
+          }
+        },
+        {
+          "name": "创建订单 - 用户2 (orderId=2001, userId=2, 可能分片到 ds0)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": 2001,\n  \"userId\": 2,\n  \"orderNo\": \"ORD20240002\",\n  \"amount\": 199.50,\n  \"status\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            }
+          }
+        },
+        {
+          "name": "创建订单 - 用户3 (orderId=3001, userId=3)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": 3001,\n  \"userId\": 3,\n  \"orderNo\": \"ORD20240003\",\n  \"amount\": 39.99,\n  \"status\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            }
+          }
+        },
+        {
+          "name": "批量创建订单（不同用户，不同分片）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\"orderId\": 4001, \"userId\": 4, \"orderNo\": \"ORD20240004\", \"amount\": 55.00, \"status\": 0},\n  {\"orderId\": 4002, \"userId\": 4, \"orderNo\": \"ORD20240005\", \"amount\": 120.00, \"status\": 0},\n  {\"orderId\": 5001, \"userId\": 5, \"orderNo\": \"ORD20240006\", \"amount\": 88.88, \"status\": 0}\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/batch",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "batch"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. 订单查询（从库）",
+      "item": [
+        {
+          "name": "查询用户1的所有订单",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/user/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "user", "1"]
+            }
+          }
+        },
+        {
+          "name": "查询用户2的所有订单",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/user/2",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "user", "2"]
+            }
+          }
+        },
+        {
+          "name": "根据订单号查询 ORD20240001",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/no/ORD20240001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "no", "ORD20240001"]
+            }
+          }
+        },
+        {
+          "name": "根据订单号查询 ORD20240002",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/no/ORD20240002",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "no", "ORD20240002"]
+            }
+          }
+        },
+        {
+          "name": "查询用户1状态为0的订单",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/user/1/status/0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "user", "1", "status", "0"]
+            }
+          }
+        },
+        {
+          "name": "查询用户2状态为0的订单",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/user/2/status/0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "user", "2", "status", "0"]
+            }
+          }
+        },
+        {
+          "name": "分页查询所有订单（第一页）",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "分页查询订单（第二页，每页5条）",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders?page=1&size=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "size",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "根据订单ID查询详情（orderId=1001）",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/1001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "1001"]
+            }
+          }
+        },
+        {
+          "name": "根据订单ID查询详情（orderId=2001）",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/2001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "2001"]
+            }
+          }
+        },
+        {
+          "name": "查询金额大于50的订单（需后端支持）",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders?minAmount=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"],
+              "query": [
+                {
+                  "key": "minAmount",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. 订单更新（主库）",
+      "item": [
+        {
+          "name": "更新订单1001状态为1（已支付）",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/1001/status?status=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "1001", "status"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "更新订单2001金额为250.00",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 250.00\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/2001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "2001"]
+            }
+          }
+        },
+        {
+          "name": "批量更新订单状态（将用户4的所有订单状态改为1）",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 4,\n  \"status\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/status/batch",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "status", "batch"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. 订单删除（主库）",
+      "item": [
+        {
+          "name": "删除订单3001",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/3001",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "3001"]
+            }
+          }
+        },
+        {
+          "name": "删除用户5的所有订单",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/user/5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "user", "5"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. 验证读写分离（主从同步延迟测试）",
+      "item": [
+        {
+          "name": "写入后立即查询（可能读从库未同步，演示主从延迟）",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"orderId\": 9999,\n  \"userId\": 99,\n  \"orderNo\": \"TEST_DELAY\",\n  \"amount\": 1.00,\n  \"status\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            }
+          }
+        },
+        {
+          "name": "立刻查询刚插入的订单（预期可能查不到，因为从库同步有延迟）",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/9999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "9999"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. 复杂查询（跨分片聚合）",
+      "item": [
+        {
+          "name": "统计所有订单总金额",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/total-amount",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "total-amount"]
+            }
+          }
+        },
+        {
+          "name": "按用户统计订单数量",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/group-by-user",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "group-by-user"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    }
+  ]
+}

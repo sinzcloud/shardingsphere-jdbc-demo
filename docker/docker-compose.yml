@@ -1,0 +1,174 @@
+version: '3.8'
+
+networks:
+  sharding-net:
+    driver: bridge
+
+services:
+  ds0-master:
+    image: mysql:8.0
+    container_name: ds0-master
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ds0-master-data:/var/lib/mysql
+    command:
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --gtid_mode=ON
+      - --enforce-gtid-consistency=ON
+      - --default-authentication-plugin=mysql_native_password
+    networks:
+      - sharding-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ds0-slave:
+    image: mysql:8.0
+    container_name: ds0-slave
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+    ports:
+      - "3307:3306"
+    volumes:
+      - ds0-slave-data:/var/lib/mysql
+    command:
+      - --server-id=2
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --gtid_mode=ON
+      - --enforce-gtid-consistency=ON
+      - --read-only=ON
+      - --relay-log=relay-log
+      - --default-authentication-plugin=mysql_native_password
+    networks:
+      - sharding-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      ds0-master:
+        condition: service_healthy
+
+  ds1-master:
+    image: mysql:8.0
+    container_name: ds1-master
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+    ports:
+      - "3308:3306"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ds1-master-data:/var/lib/mysql
+    command:
+      - --server-id=3
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --gtid_mode=ON
+      - --enforce-gtid-consistency=ON
+      - --default-authentication-plugin=mysql_native_password
+    networks:
+      - sharding-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ds1-slave:
+    image: mysql:8.0
+    container_name: ds1-slave
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+    ports:
+      - "3309:3306"
+    volumes:
+      - ds1-slave-data:/var/lib/mysql
+    command:
+      - --server-id=4
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --gtid_mode=ON
+      - --enforce-gtid-consistency=ON
+      - --read-only=ON
+      - --relay-log=relay-log
+      - --default-authentication-plugin=mysql_native_password
+    networks:
+      - sharding-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      ds1-master:
+        condition: service_healthy
+
+  setup-ds0-replication:
+    image: mysql:8.0
+    container_name: setup-ds0-replication
+    networks:
+      - sharding-net
+    depends_on:
+      ds0-master:
+        condition: service_healthy
+      ds0-slave:
+        condition: service_healthy
+    entrypoint: >
+      bash -c "
+        until mysql -h ds0-master -uroot -proot123 -e 'SELECT 1' &>/dev/null; do sleep 2; done &&
+        mysql -h ds0-slave -uroot -proot123 -e '
+          CHANGE MASTER TO
+            MASTER_HOST=\"ds0-master\",
+            MASTER_USER=\"repl\",
+            MASTER_PASSWORD=\"replpass\",
+            MASTER_AUTO_POSITION=1;
+          START SLAVE;
+        ' &&
+        echo 'ds0 replication configured.'
+      "
+    restart: "no"
+
+  setup-ds1-replication:
+    image: mysql:8.0
+    container_name: setup-ds1-replication
+    networks:
+      - sharding-net
+    depends_on:
+      ds1-master:
+        condition: service_healthy
+      ds1-slave:
+        condition: service_healthy
+    entrypoint: >
+      bash -c "
+        until mysql -h ds1-master -uroot -proot123 -e 'SELECT 1' &>/dev/null; do sleep 2; done &&
+        mysql -h ds1-slave -uroot -proot123 -e '
+          CHANGE MASTER TO
+            MASTER_HOST=\"ds1-master\",
+            MASTER_USER=\"repl\",
+            MASTER_PASSWORD=\"replpass\",
+            MASTER_AUTO_POSITION=1;
+          START SLAVE;
+        ' &&
+        echo 'ds1 replication configured.'
+      "
+    restart: "no"
+
+volumes:
+  ds0-master-data:
+  ds0-slave-data:
+  ds1-master-data:
+  ds1-slave-data:
