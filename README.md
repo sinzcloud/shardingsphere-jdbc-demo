@@ -1,8 +1,3 @@
-明白了，您希望 README 专注于 Docker 环境部署和整体项目描述，不包含具体的 Java 代码和详细配置文件。以下是一个精简后的 README，仅包含项目背景、技术栈、环境要求、Docker Compose 部署步骤、验证方法、连接信息以及如何使用 ShardingSphere-JDBC 进行配置的简要指引（不贴代码）。
-
----
-
-```markdown
 # ShardingSphere-JDBC 分库分表 + 读写分离测试环境
 
 ## 项目简介
